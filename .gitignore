@@ -1,0 +1,4 @@
+# Making sure these files / folders are not pushed to Github
+
+.env
+node_modules/
