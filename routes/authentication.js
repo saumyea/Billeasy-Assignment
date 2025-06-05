@@ -10,8 +10,9 @@ const { User } = require("../db");
 signupRouter.post("/", (req, res)=>{
 
 })
+
 // POST /login – authenticate and return a token
-loginRouter.post("/", (req, res)=>{
+loginRouter.post("/", userMiddleware, (req, res)=>{
     
 })
 

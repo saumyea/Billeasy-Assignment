@@ -8,12 +8,11 @@ async function userMiddleware(req, res, next){
 
     if(decodedValue.username){
         req.userName = decodedValue.userName;
-        next();
+        req.userId = decodedValue.userId;
+        return next();
     }
     else{
-        res.status(403).json({
-            msg: "Invalid credentials or user doesn't exist"
-        })
+        return res.status(403).json({ msg: "Invalid credentials or user doesn't exist"});
     }
 }
 
