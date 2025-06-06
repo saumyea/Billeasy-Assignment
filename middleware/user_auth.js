@@ -6,7 +6,7 @@ async function userMiddleware(req, res, next){
 
     // Checking if authorization header is present with proper formatting
     if(!authHeader || !authHeader.startsWith("Bearer ")){
-        return res.status(404).send({msg : "Authentication Header Missing"});
+        return res.status(401).send({msg : "Authentication Header Missing"});
     }
     const jwtToken = authHeader.split(" ")[1];   
     try {

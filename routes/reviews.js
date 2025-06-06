@@ -17,7 +17,7 @@ reviewsRouter.put("/:id", userMiddleware, async(req, res) => {
     
     const parsed = reviewSchema.safeParse({ bookId, userId, rating, comment});
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.errors });
+        return res.status(400).json({ error: "Validation Failed" });
     }
 
     const review = await Review.findOne({ bookId, userId });;
@@ -25,16 +25,11 @@ reviewsRouter.put("/:id", userMiddleware, async(req, res) => {
         return res.status(404).send({msg : "Review not found"});
     }
 
-    // Ensuring the review belongs to the authenticated user
-    if (!review.userId.equals(userId)) {
-        return res.status(403).send({ msg: "You can only change your review" });
-    }
-
     // Update review fields
     review.rating = rating;
     review.comment = comment;
     await review.save();
-    res.status(200).send({msg : "Your review has been updated"});
+    res.status(204).send({msg : "Your review has been updated"});
 })
 
 // DELETE /reviews/:id – Delete your own review
@@ -47,7 +42,7 @@ reviewsRouter.delete("/:id", userMiddleware, async(req, res) => {
     if(deletedReview === null){
         return res.status(404).send({msg : "This review doesn't exist or you don't have permission to delete this"});
     }
-    res.status(200).send({msg : "Your review has been deleted"});
+    res.status(204).send({msg : "Your review has been deleted"});
 })
 
 module.exports = reviewsRouter;

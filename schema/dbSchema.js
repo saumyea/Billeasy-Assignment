@@ -22,6 +22,7 @@ const reviewSchema = new Schema({
 	"rating" :	{type : Number, required : true},
 	"comment" : {type : String, required : true},
 })
+.index({ userId: 1, bookId: 1 }, { unique: true });
 
 const User = mongoose.model("User", userSchema);
 const Book = mongoose.model("Book", bookSchema);

@@ -5,7 +5,7 @@ const ObjectId = mongoose.Types.ObjectId;
 
 const userSchema = z.object({
     "userName" : z.string().max(50),
-    "hashedPassword" : z.string().min(8),
+    "password" : z.string().min(8),
 });
 
 const bookSchema = z.object({

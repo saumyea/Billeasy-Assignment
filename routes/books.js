@@ -14,14 +14,17 @@ booksRouter.post("/", userMiddleware, async(req, res) => {
     // Validate input using Zod schema
     const parsed =  bookSchema.safeParse({title , genre, author});
     if(!parsed.success){
-        return res.status(400).json({ error: parsed.error.errors });
+        return res.status(400).json({ error: "Validation Failed" });
     }
-
+    try{
+        const newBook = new Book({title, genre, author});
+        await newBook.save();
+        console.log("New book : ", newBook);
+        res.status(200).json({msg : "New book added"});
+    }catch(err){
+        res.status(409).json({ msg: "Book title already exists" });
+    }
     // Save new book to the database    
-    const newBook = new Book({title, genre, author});
-    await newBook.save();
-    console.log("New book : ", newBook);
-    res.status(200).send({msg : "New book added"});
 })
 
 
@@ -43,7 +46,17 @@ booksRouter.get("/", userMiddleware, async(req, res) => {
     }
 
     // Retrieve books matching filters, with pagination
-    const allBooks = await Book.find(filter).skip(skip).limit(limit).lean();
+    const books = await Book.find(filter).skip(skip).limit(limit).lean();
+    
+    // Rename _id to bookId and remove __v
+    const allBooks = books.map((book) => {
+        const { _id, __v, ...restBook } = book;
+        return {
+        bookId: _id,
+        ...restBook,
+        };
+    });
+    
     const count = await Book.countDocuments(filter);
 
     return res.status(200).json({
@@ -59,13 +72,28 @@ booksRouter.get("/", userMiddleware, async(req, res) => {
 // ○ Reviews (with pagination)
 booksRouter.get("/:id", userMiddleware, async(req, res) => {
     const bookId = new ObjectId(String(req.params.id));
-    const bookDetails = await Book.findById(bookId);
+    
+    const book = await Book.findById(bookId).lean();
+    
+    if (!book) {
+        return res.status(404).json({ msg: "Book not found" });
+    }
+
+    const { _id, __v, ...restBook } = book;
+    const bookDetails = { bookId: _id, ...restBook };
 
     const page = parseInt(req.query.page) || 1;      
     const limit = parseInt(req.query.limit) || 10;  //offset 
     const skip = (page - 1) * limit;
 
-    const allReviews = await Review.find({bookId}).skip(skip).limit(limit).lean();
+    // Find reviews with pagination and lean
+    const reviews = await Review.find({ bookId }).skip(skip).limit(limit).lean();
+
+    // Rename _id and remove __v from each review
+    const allReviews = reviews.map(({ _id, __v, ...restReview }) => ({
+        reviewId: _id,
+        ...restReview,
+    }));
     const count = await Review.countDocuments({bookId});
 
     // Finding average rating using aggregation
@@ -93,20 +121,25 @@ booksRouter.post("/:id/reviews", userMiddleware, async(req, res) => {
     
     const parsed = reviewSchema.safeParse({bookId, userId, rating, comment});
     if(!parsed.success){
-        return res.status(400).json({ error: parsed.error.errors });
+        return res.status(400).json({ error: "Validation Failed" });
     }
-
-    // Checking if the user has already reviewed this book
-    const reviewExists = await Review.findOne({bookId, userId});
-    if(reviewExists){
-        return res.status(404).send({msg: "You cannot give multiple reviews for the same book"});
+    try{
+        // Checking if the user has already reviewed this book
+        const reviewExists = await Review.findOne({bookId, userId});
+        if(reviewExists){
+            return res.status(409).send({msg: "You cannot give multiple reviews for the same book"});
+        }
+      
+        // Saving new review to the db
+        const newReview = new Review({bookId, userId, rating, comment});
+        await newReview.save();
+        console.log("New Review : ", newReview);
+        res.status(201).send({msg : "Your review is submitted"});
+    }catch(err){
+        if(err.code === 11000){
+            res.status(400).json({error : "Multiple Reviews for same book"})
+        }
     }
-  
-    // Saving new review to the db
-    const newReview = new Review({bookId, userId, rating, comment});
-    await newReview.save();
-    console.log("New Review : ", newReview);
-    res.status(200).send({msg : "Your review is submitted"});
 })
 
 
